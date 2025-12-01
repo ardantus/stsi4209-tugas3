@@ -31,6 +31,11 @@ stsi4209-tugas3/
 │       ├─ ba-status-badge.js     # Komponen badge status stok
 │       └─ ba-modal.js            # Komponen modal dialog
 └─ templates/              # Folder template HTML (tidak lagi digunakan, di-inline di index.html)
+    ├── ba-do-tracking.html
+    ├── ba-modal.html
+    ├── ba-order-form.html
+    ├── ba-status-badge.html
+    └── ba-stock-table.html
 ```
 
 ## Cara Menjalankan
