@@ -1,0 +1,24 @@
+<script type="text/x-template" id="tpl-order-form">
+  <div>
+    <h2>Buat Order Baru</h2>
+    <p>Form untuk membuat order pembelian bahan ajar baru</p>
+    
+    <div style="background:#f9f9f9; padding:15px; margin:20px 0; border:1px solid #ddd;">
+      <h3>Data Order</h3>
+      <input v-model="form.noPo" placeholder="No. PO" @keyup.enter="simpanOrder">
+      <input v-model="form.tanggal" type="date" @keyup.enter="simpanOrder">
+      <input v-model="form.supplier" placeholder="Nama Supplier" @keyup.enter="simpanOrder">
+      <textarea v-model="form.keterangan" placeholder="Keterangan order"></textarea>
+      <button @click="simpanOrder">Simpan Order</button>
+      <button @click="resetForm">Reset</button>
+    </div>
+
+    <p v-if="!orderList.length" style="color:#999;">Belum ada order</p>
+    <div v-for="(order, i) in orderList" :key="i" style="border:1px solid #ddd; padding:15px; margin:10px 0;">
+      <h4>{{ order.noPo }} - {{ order.supplier }}</h4>
+      <p>Tanggal: {{ order.tanggal }}</p>
+      <p>Keterangan: {{ order.keterangan }}</p>
+      <button @click="hapusOrder(i)" style="color:red;">Hapus</button>
+    </div>
+  </div>
+</script>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>SITTA - Sistem Bahan Ajar UT</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <h1>Sistem Informasi Tiras dan Transaksi Bahan Ajar (SITTA)</h1>
+      <div class="tabs">
+        <button @click="tab = 'stok'"   :class="{active: tab==='stok'}">Stok Bahan Ajar</button>
+        <button @click="tab = 'tracking'" :class="{active: tab==='tracking'}">Tracking DO</button>
+        <button @click="tab = 'order'"  :class="{active: tab==='order'}">Buat Order Baru</button>
+      </div>
+
+      <ba-stock-table   v-if="tab==='stok'"></ba-stock-table>
+      <ba-do-tracking   v-if="tab==='tracking'"></ba-do-tracking>
+      <ba-order-form    v-if="tab==='order'"></ba-order-form>
+    </div>
+
+    <ba-modal v-if="modal.show" :title="modal.title" @close="modal.show=false">
+      <div v-html="modal.content"></div>
+    </ba-modal>
+  </div>
+
+  <!-- Template HTML -->
+  <script type="text/x-template" id="tpl-modal">
+    <div class="modal" @click.self="$emit('close')">
+      <div class="modal-content">
+        <h2>{{ title }}</h2>
+        <slot></slot>
+        <button @click="$emit('close')" style="float:right; margin-top:20px;">Tutup</button>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-template" id="tpl-status-badge">
+    <span :class="status.cls">● {{ status.text }}</span>
+  </script>
+
+  <script type="text/x-template" id="tpl-stock-table">
+    <div>
+      <h2>Stok Bahan Ajar</h2>
+
+      <!-- Filter & Sort -->
+      <div style="margin:20px 0;">
+        <select v-model="filterUpbjj" @change="$forceUpdate()">
+          <option value="">Semua UT Daerah</option>
+          <option v-for="u in upbjjList" :value="u">{{u}}</option>
+        </select>
+
+        <select v-model="filterKategori" :disabled="!filterUpbjj">
+          <option value="">Semua Kategori</option>
+          <option v-for="k in kategoriByUpbjj" :value="k">{{k}}</option>
+        </select>
+
+        <label><input type="checkbox" v-model="filterKritis"> Hanya stok kritis</label>
+
+        <button @click="resetFilter">Reset Filter</button>
+        <button @click="startAdd" style="float:right;">+ Tambah Baru</button>
+      </div>
+
+      <!-- Form Tambah/Edit -->
+      <div v-if="showForm" style="background:#f9f9f9; padding:15px; margin-bottom:20px; border:1px solid #ddd;">
+        <h3>{{ editIndex>=0 ? 'Edit' : 'Tambah' }} Bahan Ajar</h3>
+        <input v-model="form.kode" placeholder="Kode" @keyup.enter="save">
+        <input v-model="form.judul" placeholder="Judul" @keyup.enter="save">
+        <select v-model="form.kategori"><option v-for="k in kategoriList">{{k}}</option></select>
+        <select v-model="form.upbjj"><option v-for="u in upbjjList">{{u}}</option></select>
+        <input v-model="form.lokasiRak" placeholder="Lokasi Rak">
+        <input type="number" v-model.number="form.harga" placeholder="Harga">
+        <input type="number" v-model.number="form.qty" placeholder="Qty">
+        <input type="number" v-model.number="form.safety" placeholder="Safety Stock">
+        <textarea v-model="form.catatanHTML" placeholder="Catatan HTML"></textarea>
+        <button @click="save">Simpan (Enter)</button>
+        <button @click="showForm=false">Batal</button>
+      </div>
+
+      <!-- Tabel -->
+      <table>
+        <thead>
+          <tr>
+            <th @click="sortBy('kode')">Kode</th>
+            <th @click="sortBy('judul')">Judul</th>
+            <th>Kategori</th>
+            <th>UT Daerah</th>
+            <th>Lokasi Rak</th>
+            <th @click="sortBy('harga')">Harga</th>
+            <th @click="sortBy('qty')">Stok</th>
+            <th>Safety</th>
+            <th>Status</th>
+            <th>Catatan</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, i) in filtered" :key="item.kode">
+            <td>{{ item.kode }}</td>
+            <td>{{ item.judul }}</td>
+            <td>{{ item.kategori }}</td>
+            <td>{{ item.upbjj }}</td>
+            <td>{{ item.lokasiRak }}</td>
+            <td>{{ formatRupiah(item.harga) }}</td>
+            <td>{{ formatBuah(item.qty) }}</td>
+            <td>{{ formatBuah(item.safety) }}</td>
+            <td><ba-status-badge :qty="item.qty" :safety="item.safety"></ba-status-badge></td>
+            <td>
+              <span v-html="item.catatanHTML" @mouseover="showCatatan(item)"></span>
+            </td>
+            <td>
+              <button @click="startEdit(item, i)">Edit</button>
+              <button @click="hapus(i)" style="color:red;">Hapus</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </script>
+
+  <script type="text/x-template" id="tpl-do-tracking">
+    <div>
+      <h2>Tracking Delivery Order</h2>
+      <input v-model="search" placeholder="Cari Nomor DO atau NIM (Enter/Esc)" @keyup.enter="$forceUpdate()" @keyup.esc="search=''">
+
+      <div v-for="t in hasilCari" :key="Object.keys(t)[0]" style="border:1px solid #ccc; margin:15px 0; padding:15px;">
+        <h3>{{ Object.keys(t)[0] }} - {{ t.nama }} ({{ t.nim }})</h3>
+        <p>Paket: {{ t.paket }} | Total: {{ formatRupiah(t.total) }} | Kirim: {{ formatTanggal(t.tanggalKirim) }}</p>
+        <p>Ekspedisi: {{ t.ekspedisi }}</p>
+        <h4>Riwayat Perjalanan</h4>
+        <ul>
+          <li v-for="p in t.perjalanan">{{ p.waktu }} - {{ p.keterangan }}</li>
+        </ul>
+        <input v-model="t.keteranganBaru" placeholder="Tambah keterangan baru" @keyup.enter="tambahProgress(t)">
+        <button @click="tambahProgress(t)">+ Progress</button>
+      </div>
+
+      <h3 style="margin-top:40px;">Tambah DO Baru</h3>
+      <input v-model="form.nim" placeholder="NIM" @keyup.enter="tambahDO">
+      <input v-model="form.nama" placeholder="Nama" @keyup.enter="tambahDO">
+      <select v-model="form.ekspedisi">
+        <option value="REG">JNE Regular</option>
+        <option value="EXP">JNE Express</option>
+      </select>
+      <select v-model="form.paket" @change="pilihPaket">
+        <option value="">Pilih Paket</option>
+        <option v-for="p in dataMaster.paket" :value="p.kode">{{ p.kode }} - {{ p.nama }}</option>
+      </select>
+      <div v-if="detailPaket">
+        <p>Isi paket: {{ detailPaket.isi.join(', ') }}</p>
+        <p>Harga: {{ formatRupiah(detailPaket.harga) }}</p>
+      </div>
+      <button @click="tambahDO">Buat DO Baru (Enter)</button>
+    </div>
+  </script>
+
+  <script type="text/x-template" id="tpl-order-form">
+    <div>
+      <h2>Buat Order Baru</h2>
+      <p>Form untuk membuat order pembelian bahan ajar baru</p>
+      
+      <div style="background:#f9f9f9; padding:15px; margin:20px 0; border:1px solid #ddd;">
+        <h3>Data Order</h3>
+        <input v-model="form.noPo" placeholder="No. PO" @keyup.enter="simpanOrder">
+        <input v-model="form.tanggal" type="date" @keyup.enter="simpanOrder">
+        <input v-model="form.supplier" placeholder="Nama Supplier" @keyup.enter="simpanOrder">
+        <textarea v-model="form.keterangan" placeholder="Keterangan order"></textarea>
+        <button @click="simpanOrder">Simpan Order</button>
+        <button @click="resetForm">Reset</button>
+      </div>
+
+      <p v-if="!orderList.length" style="color:#999;">Belum ada order</p>
+      <div v-for="(order, i) in orderList" :key="i" style="border:1px solid #ddd; padding:15px; margin:10px 0;">
+        <h4>{{ order.noPo }} - {{ order.supplier }}</h4>
+        <p>Tanggal: {{ order.tanggal }}</p>
+        <p>Keterangan: {{ order.keterangan }}</p>
+        <button @click="hapusOrder(i)" style="color:red;">Hapus</button>
+      </div>
+    </div>
+  </script>
+
+  <!-- Script JS -->
+  <script src="js/services/api.js"></script>
+  <script src="js/components/ba-modal.js"></script>
+  <script src="js/components/ba-status-badge.js"></script>
+  <script src="js/components/ba-stock-table.js"></script>
+  <script src="js/components/ba-do-tracking.js"></script>
+  <script src="js/components/ba-order-form.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

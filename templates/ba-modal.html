@@ -1,0 +1,10 @@
+<!-- ba-modal.html -->
+<script type="text/x-template" id="tpl-modal">
+  <div class="modal" @click.self="close">
+    <div class="modal-content">
+      <h2>{{ title }}</h2>
+      <slot></slot>
+      <button @click="close" style="float:right; margin-top:20px;">Tutup</button>
+    </div>
+  </div>
+</script>

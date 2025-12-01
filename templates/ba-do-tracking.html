@@ -1,0 +1,35 @@
+<script type="text/x-template" id="tpl-do-tracking">
+  <div>
+    <h2>Tracking Delivery Order</h2>
+    <input v-model="search" placeholder="Cari Nomor DO atau NIM (Enter/Esc)" @keyup.enter="$forceUpdate()" @keyup.esc="search=''">
+
+    <div v-for="t in hasilCari" :key="Object.keys(t)[0]" style="border:1px solid #ccc; margin:15px 0; padding:15px;">
+      <h3>{{ Object.keys(t)[0] }} - {{ t.nama }} ({{ t.nim }})</h3>
+      <p>Paket: {{ t.paket }} | Total: {{ formatRupiah(t.total) }} | Kirim: {{ formatTanggal(t.tanggalKirim) }}</p>
+      <p>Ekspedisi: {{ t.ekspedisi }}</p>
+      <h4>Riwayat Perjalanan</h4>
+      <ul>
+        <li v-for="p in t.perjalanan">{{ p.waktu }} - {{ p.keterangan }}</li>
+      </ul>
+      <input v-model="t.keteranganBaru" placeholder="Tambah keterangan baru" @keyup.enter="tambahProgress(t)">
+      <button @click="tambahProgress(t)">+ Progress</button>
+    </div>
+
+    <h3 style="margin-top:40px;">Tambah DO Baru</h3>
+    <input v-model="form.nim" placeholder="NIM" @keyup.enter="tambahDO">
+    <input v-model="form.nama" placeholder="Nama" @keyup.enter="tambahDO">
+    <select v-model="form.ekspedisi">
+      <option value="REG">JNE Regular</option>
+      <option value="EXP">JNE Express</option>
+    </select>
+    <select v-model="form.paket" @change="pilihPaket">
+      <option value="">Pilih Paket</option>
+      <option v-for="p in dataMaster.paket" :value="p.kode">{{ p.kode }} - {{ p.nama }}</option>
+    </select>
+    <div v-if="detailPaket">
+      <p>Isi paket: {{ detailPaket.isi.join(', ') }}</p>
+      <p>Harga: {{ formatRupiah(detailPaket.harga) }}</p>
+    </div>
+    <button @click="tambahDO">Buat DO Baru (Enter)</button>
+  </div>
+</script>
